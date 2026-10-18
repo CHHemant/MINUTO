@@ -153,9 +153,15 @@ The final migration gates vendors and delivery agents behind approval. Existing 
 
 ### Finance administrator
 
-The approval migration currently allowlists the administrator email configured for this deployment. The account must exist in Supabase Auth and its email must be confirmed. Finance access is checked server-side; selecting a client role cannot grant administrator access.
+The approval migration creates an empty server-side allowlist. After the administrator account exists in Supabase Auth and its email is confirmed, add the approved operator from the Supabase SQL Editor using a controlled deployment process:
 
-Before production, replace the deployment-specific allowlist approach with a controlled organization/admin identity process, and review the email against the account that will actually operate the marketplace.
+```sql
+insert into public.finance_admin_allowlist (email)
+values (lower('finance-operator@example.com'))
+on conflict (email) do nothing;
+```
+
+Finance access is checked server-side; selecting a client role cannot grant it. Keep this table private and restrict changes to trusted infrastructure or a documented administrator process. Do not put administrator emails or service-role credentials in the mobile app.
 
 ## Configure YouPI UPI checkout
 

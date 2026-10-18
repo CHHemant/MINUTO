@@ -32,10 +32,6 @@ create table if not exists public.finance_admin_allowlist (
 );
 alter table public.finance_admin_allowlist enable row level security;
 revoke all on public.finance_admin_allowlist from public, anon, authenticated;
-insert into public.finance_admin_allowlist (email)
-values ('hemantchoudhary0@gmail.com')
-on conflict (email) do nothing;
-
 create or replace function public.is_finance_admin()
 returns boolean
 language sql

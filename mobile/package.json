@@ -26,9 +26,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "build:android": "eas build --platform android --profile preview",
-    "build:ios": "eas build --platform ios --profile production",
-    "lint": "eslint App.tsx --max-warnings=0"
+    "build:android": "npx eas-cli@latest build --platform android --profile preview",
+    "build:ios": "npx eas-cli@latest build --platform ios --profile production",
+    "lint": "eslint App.tsx src --max-warnings=0"
   },
   "private": true
 }

@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, type Session } from "@supabase/supabase-js";
 import * as ImagePicker from "expo-image-picker";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Component, type ErrorInfo, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
@@ -20,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { normalizeIndianPhone, validateSellerPaymentDetails, validateSupabaseConfig } from "./src/lib/validation";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim();
@@ -159,6 +160,33 @@ function formatMoney(amount: number) {
 
 function messageFor(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
+}
+
+class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Unhandled Minuto rendering error", error, info.componentStack);
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children;
+
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <Text style={styles.brand}>minuto</Text>
+          <Text style={styles.heading}>Something went wrong.</Text>
+          <Text style={styles.paragraph}>The app could not display this screen. Restart Minuto and try again.</Text>
+          <Button title="Try again" onPress={() => this.setState({ hasError: false })} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 }
 
 function SetupScreen({ onConnect }: { onConnect: (url: string, key: string) => Promise<void> }) {
@@ -403,14 +431,7 @@ function AppContent({ client, session }: { client: NonNullable<typeof supabaseCl
   }
 
   async function saveVendorPaymentDetails(upiId: string, phone: string) {
-    const normalizedUpiId = upiId.trim();
-    const normalizedPhone = phone.replace(/\D/g, "");
-    if (!/^[A-Z0-9][A-Z0-9._+-]{1,63}@[A-Z0-9][A-Z0-9.-]{1,63}$/i.test(normalizedUpiId)) {
-      throw new Error("Enter a valid UPI ID, such as name@bank.");
-    }
-    if (!/^[6-9]\d{9}$/.test(normalizedPhone)) {
-      throw new Error("Enter a valid 10-digit Indian mobile number.");
-    }
+    const { upiId: normalizedUpiId, phone: normalizedPhone } = validateSellerPaymentDetails(upiId, phone);
     const { error } = await client.rpc("save_vendor_payment_details", {
       p_upi_id: normalizedUpiId,
       p_phone: normalizedPhone,
@@ -976,7 +997,7 @@ function Marketplace({
 
   function validateDeliveryDetails() {
     if (!cartLines.length) throw new Error("Add products to your bag first.");
-    if (!/^[6-9]\d{9}$/.test(phone.replace(/\D/g, ""))) throw new Error("Enter a valid 10-digit Indian mobile number.");
+    normalizeIndianPhone(phone);
     if (address.trim().length < 5 || area.trim().length < 2 || !/^\d{6}$/.test(postalCode.trim())) {
       throw new Error("Enter your Nagpur delivery address and six-digit PIN code.");
     }
@@ -1292,7 +1313,8 @@ function Root() {
         "url" in parsed && typeof parsed.url === "string" &&
         "key" in parsed && typeof parsed.key === "string"
       ) {
-        setClient(makeSupabaseClient(parsed.url, parsed.key));
+        const config = validateSupabaseConfig(parsed.url, parsed.key);
+        setClient(makeSupabaseClient(config.url, config.key));
       } else {
         throw new Error("Saved backend settings are invalid. Reconnect your project.");
       }
@@ -1323,29 +1345,16 @@ function Root() {
   if (configLoading || (client && sessionLoading)) return <LoadingScreen label="Starting Minuto…" />;
   if (!client) {
     return <SetupScreen onConnect={async (rawUrl, rawKey) => {
-      const url = rawUrl.trim().replace(/\/+$/, "");
-      const key = rawKey.trim();
-      let parsedUrl: URL;
-      try {
-        parsedUrl = new URL(url);
-      } catch {
-        throw new Error("Enter a valid Supabase project URL.");
-      }
-      if (parsedUrl.protocol !== "https:" || !parsedUrl.hostname.endsWith(".supabase.co")) {
-        throw new Error("Enter an HTTPS Supabase project URL ending in .supabase.co.");
-      }
-      if (!(key.startsWith("sb_publishable_") || key.startsWith("eyJ"))) {
-        throw new Error("Enter a Supabase publishable/anon key, not a secret key.");
-      }
-      await AsyncStorage.setItem(BACKEND_CONFIG_KEY, JSON.stringify({ url, key }));
-      setClient(makeSupabaseClient(url, key));
+      const config = validateSupabaseConfig(rawUrl, rawKey);
+      await AsyncStorage.setItem(BACKEND_CONFIG_KEY, JSON.stringify(config));
+      setClient(makeSupabaseClient(config.url, config.key));
     }} />;
   }
   return session ? <AppContent key={session.user.id} client={client} session={session} /> : <AuthScreen client={client} />;
 }
 
 export default function App() {
-  return <SafeAreaProvider><Root /></SafeAreaProvider>;
+  return <AppErrorBoundary><SafeAreaProvider><Root /></SafeAreaProvider></AppErrorBoundary>;
 }
 
 const styles = StyleSheet.create({

@@ -11,8 +11,16 @@ Minuto is an Expo / React Native marketplace for independent vendors in Nagpur. 
 3. Run `supabase/migrations/20261018_vendor_payment_details.sql` after the base schema. Sellers must save their UPI ID and phone before their listings can be seen by buyers or included in orders.
 4. To enable YouPI UPI checkout, run `supabase/migrations/20261018_youpi_upi_payments.sql`. This adds payment state, order reservation handling, and the protected webhook RPCs.
 5. Run `supabase/migrations/20261018_youpi_upi_reliability.sql`. It tracks individual gateway attempts, supports safe retries and payment-status reconciliation, creates private seller payout records, and records payments requiring manual review.
-6. Run `supabase/migrations/20261018_marketplace_admin_approval.sql` last. It gates vendor and delivery-agent access behind approval, creates the finance admin allowlist for `hemantchoudhary0@gmail.com`, and adds audited in-app review and manual settlement controls. Existing vendor and agent accounts will require review again.
-7. Ensure the allowlisted administrator has a Supabase Auth account with that confirmed email address. Finance access is determined server-side; a client-selected role cannot grant it.
+6. Run `supabase/migrations/20261018_marketplace_admin_approval.sql` last. It gates vendor and delivery-agent access behind approval, creates the private finance admin allowlist, and adds audited in-app review and manual settlement controls. Existing vendor and agent accounts will require review again.
+7. After the finance operator has a confirmed Supabase Auth account, add the operator explicitly from the Supabase SQL Editor:
+
+   ```sql
+   insert into public.finance_admin_allowlist (email)
+   values (lower('finance-operator@example.com'))
+   on conflict (email) do nothing;
+   ```
+
+   Finance access is determined server-side; a client-selected role cannot grant it. Do not commit the operator email or any service-role credential in source control.
 8. In the Supabase project settings, copy the **Project URL** and the **publishable key** (or legacy anon key). Never put a `service_role` or secret key in a mobile app.
 9. Either enter those values in the app's first-run setup screen, or create `.env.local` in this directory from `.env.example`:
 
