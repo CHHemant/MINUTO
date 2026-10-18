@@ -2382,6 +2382,7 @@
         <button class="checkout-button" id="checkout-button" type="button">
           <span>Place your order</span><span id="checkout-total">₹0 →</span>
         </button>
+        <p class="minimum-note">Browser demo checkout is local-only. It does not process UPI, QR payments, COD collection, or seller payouts.</p>
         <p class="minimum-note" id="minimum-note"></p>
       </div>
     </aside>
@@ -2423,18 +2424,18 @@
         const maxProductImageSize = 800 * 1024;
         const supportedCategories = ["fresh", "pantry", "tech", "style"];
         const seededProducts = [
-          { id: "avocado", name: "Ripe & ready avocados", unit: "2 pieces · Just ripe", price: 89, category: "fresh", emoji: "🥑", tone: "#eaf1dc", tag: "Peak ripe" },
-          { id: "strawberries", name: "Sweet strawberries", unit: "1 punnet · 250 g", price: 129, category: "fresh", emoji: "🍓", tone: "#f8e9e3", tag: "Picked today" },
-          { id: "spinach", name: "Baby spinach leaves", unit: "Washed · 200 g", price: 49, category: "fresh", emoji: "🥬", tone: "#e6efe1", tag: "Farm fresh" },
-          { id: "bananas", name: "Yelakki bananas", unit: "6 pieces", price: 55, category: "fresh", emoji: "🍌", tone: "#f7f0d8", tag: "Local pick" },
-          { id: "oats", name: "Slow-grown rolled oats", unit: "Whole grain · 500 g", price: 149, category: "pantry", emoji: "🥣", tone: "#f0ece1", tag: "Pantry staple" },
-          { id: "coffee", name: "Coorg filter coffee", unit: "Ground · 250 g", price: 245, category: "pantry", emoji: "☕", tone: "#eee5db", tag: "Small batch" },
-          { id: "chocolate", name: "Dark chocolate bites", unit: "70% cacao · 100 g", price: 99, category: "pantry", emoji: "🍫", tone: "#efe5de", tag: "Little treat" },
-          { id: "chips", name: "Sea salt kettle chips", unit: "Crispy · 120 g", price: 79, category: "pantry", emoji: "🥔", tone: "#f3edda", tag: "Crowd favorite" },
-          { id: "earbuds", name: "Pocket wireless earbuds", unit: "Clear sound · USB-C", price: 1299, category: "tech", emoji: "🎧", tone: "#e9edf0", tag: "Everyday tech" },
-          { id: "charger", name: "Fast-charge adapter", unit: "20 W · USB-C", price: 699, category: "tech", emoji: "🔌", tone: "#e7eee9", tag: "Quick charge" },
-          { id: "tote", name: "Everyday canvas tote", unit: "Natural cotton · 12 L", price: 349, category: "style", emoji: "👜", tone: "#f1e9dc", tag: "Reusable" },
-          { id: "candle", name: "Calm down soy candle", unit: "Cedar & citrus · 120 g", price: 499, category: "style", emoji: "🕯️", tone: "#f2ece2", tag: "Hand poured" },
+          { id: "avocado", name: "Ripe & ready avocados", unit: "2 pieces · Just ripe", sellerPrice: 89, price: 94, category: "fresh", emoji: "🥑", tone: "#eaf1dc", tag: "Peak ripe" },
+          { id: "strawberries", name: "Sweet strawberries", unit: "1 punnet · 250 g", sellerPrice: 129, price: 134, category: "fresh", emoji: "🍓", tone: "#f8e9e3", tag: "Picked today" },
+          { id: "spinach", name: "Baby spinach leaves", unit: "Washed · 200 g", sellerPrice: 49, price: 54, category: "fresh", emoji: "🥬", tone: "#e6efe1", tag: "Farm fresh" },
+          { id: "bananas", name: "Yelakki bananas", unit: "6 pieces", sellerPrice: 55, price: 60, category: "fresh", emoji: "🍌", tone: "#f7f0d8", tag: "Local pick" },
+          { id: "oats", name: "Slow-grown rolled oats", unit: "Whole grain · 500 g", sellerPrice: 149, price: 154, category: "pantry", emoji: "🥣", tone: "#f0ece1", tag: "Pantry staple" },
+          { id: "coffee", name: "Coorg filter coffee", unit: "Ground · 250 g", sellerPrice: 245, price: 250, category: "pantry", emoji: "☕", tone: "#eee5db", tag: "Small batch" },
+          { id: "chocolate", name: "Dark chocolate bites", unit: "70% cacao · 100 g", sellerPrice: 99, price: 104, category: "pantry", emoji: "🍫", tone: "#efe5de", tag: "Little treat" },
+          { id: "chips", name: "Sea salt kettle chips", unit: "Crispy · 120 g", sellerPrice: 79, price: 84, category: "pantry", emoji: "🥔", tone: "#f3edda", tag: "Crowd favorite" },
+          { id: "earbuds", name: "Pocket wireless earbuds", unit: "Clear sound · USB-C", sellerPrice: 1299, price: 1304, category: "tech", emoji: "🎧", tone: "#e9edf0", tag: "Everyday tech" },
+          { id: "charger", name: "Fast-charge adapter", unit: "20 W · USB-C", sellerPrice: 699, price: 704, category: "tech", emoji: "🔌", tone: "#e7eee9", tag: "Quick charge" },
+          { id: "tote", name: "Everyday canvas tote", unit: "Natural cotton · 12 L", sellerPrice: 349, price: 354, category: "style", emoji: "👜", tone: "#f1e9dc", tag: "Reusable" },
+          { id: "candle", name: "Calm down soy candle", unit: "Cedar & citrus · 120 g", sellerPrice: 499, price: 504, category: "style", emoji: "🕯️", tone: "#f2ece2", tag: "Hand poured" },
         ];
 
         let products = [...seededProducts, ...readSavedProducts()];

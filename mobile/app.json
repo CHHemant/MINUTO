@@ -3,6 +3,7 @@
     "name": "Minuto",
     "slug": "minuto",
     "version": "1.0.0",
+    "description": "A local marketplace connecting buyers with independent vendors and delivery agents.",
     "orientation": "portrait",
     "scheme": "minuto",
     "icon": "../icons/icon-1024.png",
@@ -25,6 +26,7 @@
     "android": {
       "package": "com.minuto.shop",
       "allowBackup": false,
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#445442",
         "foregroundImage": "../icons/icon-1024.png"
