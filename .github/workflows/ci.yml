@@ -1,0 +1,57 @@
+name: Validate Minuto
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npx expo-doctor
+
+  deno:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+      - name: Check Edge Functions
+        run: |
+          deno check mobile/supabase/functions/create-youpi-payment/index.ts
+          deno check mobile/supabase/functions/sync-youpi-payment/index.ts
+          deno check mobile/supabase/functions/youpi-webhook/index.ts
+      - name: Run Edge Function tests
+        run: deno test --allow-env mobile/supabase/functions/youpi-webhook/webhook_utils_test.ts
+      - name: Run validation tests
+        run: deno test mobile/src/lib/validation_test.ts
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate static web assets
+        shell: bash
+        run: |
+          test -s index.html
+          test -s manifest.webmanifest
+          test -s sw.js
+          grep -q 'name.*Minuto' manifest.webmanifest
+          grep -q 'register' index.html
