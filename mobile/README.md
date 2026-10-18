@@ -1,4 +1,6 @@
-# Minuto Android app
+# Minuto Mobile and Backend Implementation Guide
+
+For the project overview, product rationale, architecture, installation, security model, testing checklist, limitations, and launch requirements, see the repository [README.md](../README.md). This file contains the mobile-specific backend and deployment details.
 
 Minuto is an Expo / React Native marketplace for independent vendors in Nagpur. It supports buyer, vendor, and delivery-agent roles. Supabase provides shared accounts, catalog, image storage, orders, and live delivery-job updates. Authentication sessions are persisted on each phone.
 
