@@ -1,0 +1,14 @@
+.DS_Store
+desktop.ini
+.idea/
+.claude/
+**/.env
+**/.env.*
+!**/.env.example
+**/.env*.local
+mobile/.claude/
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/android/

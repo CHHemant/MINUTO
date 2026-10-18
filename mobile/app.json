@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Minuto",
+    "slug": "minuto",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "minuto",
+    "icon": "../icons/icon-1024.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#faf9f5",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Minuto uses your photo library so sellers can add product photos.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.minuto.shop"
+    },
+    "android": {
+      "package": "com.minuto.shop",
+      "allowBackup": false,
+      "adaptiveIcon": {
+        "backgroundColor": "#445442",
+        "foregroundImage": "../icons/icon-1024.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
