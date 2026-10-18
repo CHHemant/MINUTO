@@ -1,83 +1,355 @@
-# Minuto Android app
+# Minuto
 
-Minuto is an Expo / React Native marketplace for independent vendors in Nagpur. It supports buyer, vendor, and delivery-agent roles. Supabase provides shared accounts, catalog, image storage, orders, and live delivery-job updates. Authentication sessions are persisted on each phone.
+**Local commerce for everyday needs, delivered in minutes.**
 
-## Set up the shared backend
+Minuto is a neighborhood marketplace for connecting buyers with independent local vendors and delivery agents. The current implementation is designed for Nagpur, Maharashtra, and combines a React Native mobile application, a lightweight web/PWA surface, Supabase backend services, and optional YouPI-hosted UPI checkout.
 
-1. Create a Supabase project.
-2. Open its **SQL Editor** and run `supabase/schema.sql` once. This creates the app schema, security policies, order and delivery functions, product-image bucket, and Realtime tables.
-3. Run `supabase/migrations/20261018_vendor_payment_details.sql` after the base schema. Sellers must save their UPI ID and phone before their listings can be seen by buyers or included in orders.
-4. To enable YouPI UPI checkout, run `supabase/migrations/20261018_youpi_upi_payments.sql`. This adds payment state, order reservation handling, and the protected webhook RPCs.
-5. Run `supabase/migrations/20261018_youpi_upi_reliability.sql`. It tracks individual gateway attempts, supports safe retries and payment-status reconciliation, creates private seller payout records, and records payments requiring manual review.
-6. Run `supabase/migrations/20261018_marketplace_admin_approval.sql` last. It gates vendor and delivery-agent access behind approval, creates the finance admin allowlist for `hemantchoudhary0@gmail.com`, and adds audited in-app review and manual settlement controls. Existing vendor and agent accounts will require review again.
-7. Ensure the allowlisted administrator has a Supabase Auth account with that confirmed email address. Finance access is determined server-side; a client-selected role cannot grant it.
-8. In the Supabase project settings, copy the **Project URL** and the **publishable key** (or legacy anon key). Never put a `service_role` or secret key in a mobile app.
-9. Either enter those values in the app's first-run setup screen, or create `.env.local` in this directory from `.env.example`:
+> **Project status:** The application is in active development. Local type checks, linting, Expo diagnostics, payment-function checks, webhook unit tests, Android JavaScript export, and an Android debug build have passed. A staging Supabase project, YouPI sandbox transaction, and physical-device smoke test are still required before accepting real payments or launching publicly.
 
-   ```text
-   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_your_key
-   ```
+## Why the name “Minuto”?
 
-10. Install dependencies with `npm ci`, then start the development app with `npx expo start`.
+“Minuto” is inspired by the word *minute*. It represents the product promise: simple neighborhood shopping with less waiting, fewer steps, and a focus on quick local fulfillment. The name is short, easy to remember, and works across the buyer, vendor, delivery, and payment experiences.
 
-For a shared marketplace, each phone must connect to the same Supabase project. Phone-only storage cannot keep different buyers, vendors, and agents in sync.
+The name describes the intended experience—not a guarantee that every order will arrive within a fixed number of minutes. Actual delivery time depends on vendor preparation, inventory, distance, traffic, and agent availability.
 
-## Enable YouPI UPI checkout
+## What the project includes
 
-Minuto opens YouPI's hosted checkout in the device browser. The app never decides that a payment succeeded: a signed YouPI webhook must first pass HMAC verification and match the order ID, payment ID, currency, and exact amount. Delivery jobs are created only after that verification. COD checkout remains available.
+### Buyer experience
 
-The YouPI merchant account has one configured receiving UPI account. Buyer payments therefore go to Minuto's configured account, not directly to each seller. Seller UPI ID and phone are collected for Minuto to pay sellers separately; this app does not automatically transfer funds. The details are self-entered, not independently verified, and not visible to buyers. UPI checkout snapshots the seller's payout details for the order so later profile edits do not redirect an existing payout. Sellers must save both details before their listings are visible or can be ordered.
+- Email/password authentication through Supabase Auth.
+- Product discovery with search and category information.
+- Product images and inventory visibility.
+- Favorites.
+- Cart and transparent price breakdown.
+- Cash on delivery checkout.
+- Optional UPI checkout through a hosted YouPI payment page.
+- Order and payment status recovery.
+- Delivery status visibility and map navigation.
 
-Minuto's existing charges remain: ₹5 markup per item, ₹6 buyer delivery contribution per order, and ₹6 seller delivery contribution per vendor delivery. The UPI seller payout ledger records seller-price total less the ₹6 seller delivery contribution for each vendor; if that leaves zero or less, no payout is due for that vendor on that order. The ledger is not an automatic transfer system. YouPI advertises zero gateway platform fees, but independently confirm its commercial terms and any bank, hosting, tax, or other charges; Minuto cannot promise that all transactions have zero charges.
+### Vendor experience
 
-1. Deploy YouPI separately using its own deployment and commercial license terms. Configure its public HTTPS checkout/API URL, merchant ID, and webhook secret in its merchant settings.
-2. From this directory, deploy the Supabase Edge Functions. Keep the webhook function's JWT verification disabled because YouPI authenticates it with its HMAC signature; the payment-creation function still requires the signed-in user's JWT:
+- Vendor account onboarding.
+- Required UPI ID and phone number before listings can be accepted.
+- Manual marketplace approval before vendor features become active.
+- Product name, description, category, price, stock, and image publishing.
+- Pickup address management.
+- Order preparation and handoff to delivery agents.
+- Seller payout ledger showing the amount that must be transferred manually.
 
-   ```powershell
-   supabase functions deploy create-youpi-payment --project-ref <project-ref>
-   supabase functions deploy sync-youpi-payment --project-ref <project-ref>
-   supabase functions deploy youpi-webhook --no-verify-jwt --project-ref <project-ref>
-   ```
+### Delivery-agent experience
 
-3. Configure the Edge Function secrets in Supabase. The Supabase service-role key is supplied to Edge Functions by Supabase; never add it to the app or source files.
+- Delivery-agent onboarding with manual approval.
+- Live delivery offers while the application is open.
+- Race-safe job acceptance: only the first successful agent receives a job.
+- Pickup and delivered status transitions.
+- Map navigation to pickup and customer addresses.
 
-   ```powershell
-   supabase secrets set YOUPI_API_URL=https://pay.example.com YOUPI_MERCHANT_ID=<merchant-id> YOUPI_WEBHOOK_SECRET=<webhook-secret> --project-ref <project-ref>
-   ```
+### Finance and administration
 
-4. In YouPI's merchant webhook configuration, set the webhook URL to `https://<project-ref>.supabase.co/functions/v1/youpi-webhook` and use the same webhook secret as `YOUPI_WEBHOOK_SECRET`.
-5. Test the full hosted-checkout, retry, delayed webhook, amount mismatch, duplicate payment, and refund/reconciliation flows in a non-production environment before accepting live payments. Without all migrations, deployed functions, a publicly reachable HTTPS YouPI instance, and a working webhook, UPI orders will not complete.
+- Allowlisted finance administrator access.
+- Vendor and delivery-agent approval/rejection workflow.
+- Review notes and audit history.
+- Seller payout records.
+- Manual payout transfer reference recording.
+- Payment reconciliation cases.
+- Manual refund reference recording after an external refund has completed.
 
-### Seller approval, manual payouts, and payment review
+The finance console records actions; it does not move money, issue refunds, verify identity automatically, or connect to a bank payout provider.
 
-Vendor and delivery-agent accounts remain pending until an allowlisted finance administrator reviews and records a verification note. Rejected users can correct details and request another review. Pending accounts cannot publish listings, appear in buyer search, accept orders, upload listing photos, or accept delivery jobs.
+## Technology stack
 
-Successful UPI webhooks create seller payout rows visible to the relevant seller and finance administrators. The finance screen shows the snapshotted seller UPI ID and phone. An administrator must transfer the recorded net amount outside the app, then record the bank reference in the finance screen. Reconciliation cases are visible only to the buyer and finance administrators; the administrator must complete a real refund before recording its reference:
+| Area | Technology |
+| --- | --- |
+| Mobile app | Expo SDK 58, React Native 0.88, TypeScript |
+| Web surface | Static HTML, manifest, service worker, and shared visual assets |
+| Authentication | Supabase Auth |
+| Database | PostgreSQL through Supabase |
+| Storage | Supabase Storage for product images |
+| Realtime | Supabase Realtime for products, orders, delivery jobs, payout changes, and finance updates |
+| Server logic | Supabase Edge Functions using Deno |
+| Payment gateway | YouPI hosted checkout and signed webhooks |
+| Validation | TypeScript, ESLint, Expo Doctor, Deno checks/tests, Gradle Android build |
 
-The console writes an audit entry for account decisions, seller transfers, and completed payment refunds. It does not move money, verify identity or UPI ownership automatically, issue refunds, or settle COD/agent earnings. Never mark an external transfer or refund complete before it has actually cleared.
+## Repository layout
 
-## Build and install an Android APK
+```text
+.
+├── index.html                         # Web/PWA entry point
+├── manifest.webmanifest               # Web app metadata
+├── sw.js                              # Service worker
+├── icons/                             # Web and app icons
+└── mobile/
+    ├── App.tsx                        # Expo application
+    ├── app.json                       # Expo configuration
+    ├── package.json                   # Mobile dependencies and scripts
+    ├── supabase/
+    │   ├── schema.sql                 # Base database schema and RLS
+    │   ├── migrations/                # Ordered marketplace/payment migrations
+    │   └── functions/                 # YouPI payment Edge Functions
+    └── README.md                      # Detailed backend and Android notes
+```
 
-The project includes an Expo-generated `android` directory. With Android SDK tools and a supported JDK installed, build a local release APK from this directory:
+## Requirements
+
+For local development:
+
+- Git.
+- Node.js compatible with the Expo SDK 58 project.
+- npm.
+- A Supabase project.
+- Expo tooling (`npx expo` can run it without a global install).
+
+For Android development/builds:
+
+- Android SDK and build-tools.
+- JDK 17.
+- Android Studio or equivalent SDK installation.
+- An emulator or Android device for manual testing.
+
+For UPI:
+
+- A separately deployed and configured YouPI instance.
+- A YouPI merchant ID.
+- A YouPI webhook secret.
+- A public HTTPS URL reachable by YouPI webhooks.
+- A non-production environment for payment testing.
+
+## Quick start: mobile app
+
+From the repository root:
 
 ```powershell
+Set-Location .\mobile
+npm ci
+npx expo start
+```
+
+You can then open the project in Expo Go where supported, an Android emulator, or a development build.
+
+### Configure Supabase
+
+Create `mobile\.env.local` from `mobile\.env.example`:
+
+```text
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_your_key
+```
+
+Only use a publishable/anon key in the mobile app. Never place a Supabase service-role key, YouPI webhook secret, or other server secret in `.env.local`, the app bundle, or source control.
+
+If no environment variables are embedded, the application provides a first-run setup screen where a user can enter the Supabase URL and publishable key. The values are saved locally on that device.
+
+## Configure the Supabase backend
+
+Run the SQL files in this exact order in the Supabase SQL Editor:
+
+1. `mobile\supabase\schema.sql`
+2. `mobile\supabase\migrations\20261018_vendor_payment_details.sql`
+3. `mobile\supabase\migrations\20261018_youpi_upi_payments.sql`
+4. `mobile\supabase\migrations\20261018_youpi_upi_reliability.sql`
+5. `mobile\supabase\migrations\20261018_marketplace_admin_approval.sql`
+
+The final migration gates vendors and delivery agents behind approval. Existing vendor and agent profiles are moved to pending review when the migration is applied.
+
+### Finance administrator
+
+The approval migration currently allowlists the administrator email configured for this deployment. The account must exist in Supabase Auth and its email must be confirmed. Finance access is checked server-side; selecting a client role cannot grant administrator access.
+
+Before production, replace the deployment-specific allowlist approach with a controlled organization/admin identity process, and review the email against the account that will actually operate the marketplace.
+
+## Configure YouPI UPI checkout
+
+Minuto does not treat a browser redirect as proof of payment. A UPI order becomes paid only after one of these trusted server-side paths verifies the payment:
+
+1. A signed YouPI webhook with a valid HMAC signature.
+2. An authenticated server-side status lookup that matches the payment ID, gateway order ID, currency, and exact amount.
+
+Deploy the Edge Functions from `mobile`:
+
+```powershell
+Set-Location .\mobile
+supabase functions deploy create-youpi-payment --project-ref <project-ref>
+supabase functions deploy sync-youpi-payment --project-ref <project-ref>
+supabase functions deploy youpi-webhook --no-verify-jwt --project-ref <project-ref>
+```
+
+Configure secrets in Supabase. Do not commit their values:
+
+```powershell
+supabase secrets set `
+  YOUPI_API_URL=https://pay.example.com `
+  YOUPI_MERCHANT_ID=<merchant-id> `
+  YOUPI_WEBHOOK_SECRET=<webhook-secret> `
+  --project-ref <project-ref>
+```
+
+Configure the YouPI webhook URL as:
+
+```text
+https://<project-ref>.supabase.co/functions/v1/youpi-webhook
+```
+
+The YouPI merchant account currently receives buyer funds into Minuto’s configured gateway account. Seller UPI details are collected as payout information, but Minuto does not automatically route buyer funds to sellers.
+
+## Pricing and settlement model
+
+The current pricing rules are:
+
+- ₹5 Minuto markup per item.
+- ₹6 buyer delivery contribution per order.
+- ₹6 seller delivery contribution per vendor delivery.
+- Seller payout ledger amount: seller-price subtotal for that vendor minus the ₹6 seller delivery contribution.
+
+The finance administrator must complete seller transfers outside the application and record the bank/UPI transfer reference only after the transfer clears.
+
+YouPI’s advertised pricing must be independently confirmed. Bank charges, hosting, taxes, commercial terms, refunds, and other operational costs may still apply.
+
+## Android build and installation
+
+### Debug APK
+
+```powershell
+Set-Location .\mobile
+$env:JAVA_HOME = "C:\Path\To\jdk-17"
+.\android\gradlew.bat -p .\android --no-daemon assembleDebug
+```
+
+The debug APK is generated at:
+
+```text
+mobile\android\app\build\outputs\apk\debug\app-debug.apk
+```
+
+### Release APK
+
+```powershell
+Set-Location .\mobile
 .\android\gradlew.bat -p .\android --no-daemon assembleRelease
 ```
 
-The APK is written to `android\app\build\outputs\apk\release\app-release.apk`. If no Supabase values were embedded at build time, the app opens the first-run backend setup screen; enter the project URL and publishable key after installing it. If `.env.local` exists, Expo embeds those public client values into the app bundle.
+The release APK is generated at:
 
-On Windows, native CMake can exceed path-length limits when the project is in a deeply nested directory. If the release build fails while creating generated C++ paths, move the checkout to a shorter path or use the documented EAS build profile.
+```text
+mobile\android\app\build\outputs\apk\release\app-release.apk
+```
 
-Install the APK by transferring it to the Android phone, allowing installation from that file source when prompted, then opening Minuto. ADB can also install it with `adb install -r android\app\build\outputs\apk\release\app-release.apk` when a device with USB debugging is connected.
+On Windows, native CMake may exceed path-length limits when the repository is stored deeply. If the release build fails while creating generated C++ paths, move the repository to a shorter path or use the EAS build profile.
 
-## Current behavior and limits
+Install with ADB when a device is connected:
 
-- Email/password accounts use Supabase Auth. Users select buyer, local vendor, or delivery agent at setup; the auth session persists on the device.
-- Approved vendors publish product photos and inventory. The app adds ₹5 per item to the listed buyer price. Checkout currently adds a ₹6 buyer delivery contribution once; each vendor delivery job also records a ₹6 vendor contribution.
-- Buyers can place COD orders or start UPI checkout through a separately hosted YouPI PG instance. Pending payments can be resumed, retried after a terminal failure/expiry, or reconciled against YouPI's server-side status API. UPI orders remain pending until the signed webhook or authenticated server-side gateway status confirms the exact amount; a browser return is not proof of payment. Late/duplicate successful attempts are flagged for manual review.
-- Approved vendors mark orders ready; approved agents see the live offer while the app is open. Only the first agent to accept gets the job. Background push notifications and road-distance calculation / per-kilometer agent payouts are not configured.
-- An accepted agent can open the vendor pickup, then the buyer's Nagpur delivery address, in Maps.
-- Seller UPI ID and phone are required before review; account approval is manual and is not automated identity or UPI ownership verification. Buyer UPI funds go to Minuto's gateway account. The finance console tracks manual transfers and refunds but does not execute them. COD collection and agent payouts are not connected, and no in-app buyer support channel is connected. Do not use this as a live-commerce service until real seller verification, support, refunds, COD collection, agent settlement, applicable legal/privacy review, and staging payment tests are complete.
+```powershell
+adb install -r .\android\app\build\outputs\apk\debug\app-debug.apk
+```
 
-The database schema has not been applied to any project from this repository. The APK can be built without a configured backend, but shared accounts, product uploads, checkout, and delivery jobs work only after a Supabase project is configured and the base schema and all four migrations have been run successfully. UPI also needs deployed Edge Functions and a configured YouPI webhook.
+## Development commands
+
+From `mobile`:
+
+```powershell
+npm ci
+npm run typecheck
+npm run lint
+npx expo-doctor
+npx --yes deno check `
+  supabase/functions/create-youpi-payment/index.ts `
+  supabase/functions/sync-youpi-payment/index.ts `
+  supabase/functions/youpi-webhook/index.ts
+npx --yes deno test supabase/functions/youpi-webhook/webhook_utils_test.ts
+npx expo export --platform android --output-dir <temporary-output-directory>
+```
+
+## Testing checklist
+
+Before launch, test all of the following in a non-production environment:
+
+### Accounts and permissions
+
+- Buyer registration, email confirmation, sign-in, sign-out, and session restoration.
+- Vendor approval, rejection, correction, and re-review.
+- Delivery-agent approval and rejection.
+- Confirm pending vendors cannot publish, upload images, or receive orders.
+- Confirm pending agents cannot view offers or accept jobs.
+- Confirm buyers cannot access another buyer’s orders.
+- Confirm sellers cannot access another seller’s payout records.
+- Confirm non-admin users cannot call finance functions successfully.
+
+### Catalog and orders
+
+- Product validation, image upload, inventory limits, favorites, and stock updates.
+- Concurrent checkout for the final available stock.
+- Duplicate product IDs in a cart.
+- COD order creation and delivery-job creation.
+- Multi-vendor order creation.
+- Failed order creation and stock rollback.
+
+### UPI
+
+- Successful hosted checkout.
+- Failed, expired, and cancelled payment.
+- Retry after a terminal payment state.
+- Delayed webhook.
+- Duplicate webhook.
+- Duplicate or late successful payment.
+- Amount, currency, order ID, payment ID, and method mismatch.
+- Invalid HMAC signature and altered raw body.
+- Provider timeout and retry behavior.
+- Payment-status recovery when the app is reopened.
+- Refund and reconciliation workflow.
+
+### Delivery and settlement
+
+- Vendor marks an order ready.
+- Two agents attempt to accept the same job.
+- Agent pickup and delivery transitions.
+- Invalid status transitions.
+- Seller payout snapshot remains unchanged after profile edits.
+- Manual payout reference and audit history.
+
+## Security and privacy
+
+- Publishable Supabase keys may be embedded in the client; service-role keys must not be.
+- YouPI webhook requests are authenticated with HMAC over the raw request body.
+- Payment success requires exact server-side amount and identity matching.
+- Payment attempts are stored separately so retries and late events can be reconciled.
+- Row Level Security protects profiles, orders, delivery jobs, payout records, and reconciliation cases.
+- Seller payout details are not exposed through buyer product data.
+- Finance actions require server-side allowlist checks and are recorded in an audit log.
+- Seller UPI ownership and identity are not automatically verified by this application.
+- Avoid storing unnecessary personal data and obtain the required consent, privacy notices, and retention policies before launch.
+
+## Current limitations and launch blockers
+
+The following are intentionally not represented as complete:
+
+- No automatic seller bank/UPI payout provider.
+- No automatic refund provider integration.
+- COD collection and cash reconciliation are manual.
+- Delivery-agent compensation is not connected to a payout provider.
+- Background push notifications are not configured.
+- Route distance and per-kilometer agent payout calculation are not configured.
+- No in-app buyer support or dispute center.
+- Seller identity and UPI ownership verification require an operational process.
+- Legal, tax, privacy, consumer-protection, and payment compliance review is required.
+- Live staging payment tests have not been completed in this repository environment.
+
+Do not accept live customer payments until these operational, legal, and staging requirements are completed.
+
+## Contributing
+
+1. Create a branch for the change.
+2. Keep secrets and generated directories out of Git.
+3. Read `mobile\AGENTS.md` before changing Expo or React Native code.
+4. Run typecheck, lint, relevant Deno checks/tests, and the smallest relevant build.
+5. Describe migration order and rollback considerations for database changes.
+6. Do not claim a payment flow is verified without a non-production provider test.
+
+## License
+
+The mobile application license is defined in [`mobile/LICENSE`](mobile/LICENSE). Review third-party package licenses and YouPI’s own deployment and commercial license terms before redistribution or commercial operation.
+
+## Additional documentation
+
+- [Mobile and backend implementation guide](mobile/README.md)
+- [Base Supabase schema](mobile/supabase/schema.sql)
+- [Supabase migrations](mobile/supabase/migrations)
+- [Payment Edge Functions](mobile/supabase/functions)
