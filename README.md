@@ -197,6 +197,8 @@ https://<project-ref>.supabase.co/functions/v1/youpi-webhook
 
 The YouPI merchant account currently receives buyer funds into Minuto’s configured gateway account. Seller UPI details are collected as payout information, but Minuto does not automatically route buyer funds to sellers.
 
+The browser demo intentionally does not accept seller UPI IDs or QR codes. A seller UPI ID is payout metadata in the mobile/backend flow, not a buyer payment destination. Never treat a manually entered UPI ID, QR scan, browser redirect, or client-side success state as proof that Minuto received money.
+
 ## Pricing and settlement model
 
 The current pricing rules are:
@@ -336,6 +338,22 @@ The following are intentionally not represented as complete:
 - No in-app buyer support or dispute center.
 - Seller identity and UPI ownership verification require an operational process.
 - Legal, tax, privacy, consumer-protection, and payment compliance review is required.
+
+## Google Play release preparation
+
+The repository now includes [PLAY_STORE_CHECKLIST.md](PLAY_STORE_CHECKLIST.md), [PRIVACY.md](PRIVACY.md), and [SUPPORT.md](SUPPORT.md). These are preparation documents, not proof that the app is ready for publication. Replace their placeholder contact and HTTPS URLs, configure a production Supabase project, complete YouPI staging tests, configure EAS signing, and submit the first build to an internal or closed Play testing track.
+
+Build the production Android App Bundle from `mobile` with:
+
+```powershell
+npm ci
+npm run typecheck
+npm run lint
+npx expo-doctor
+npm run build:android:production
+```
+
+Never upload a debug APK or publish the browser demo as the production payment application.
 - Live staging payment tests have not been completed in this repository environment.
 
 Do not accept live customer payments until these operational, legal, and staging requirements are completed.

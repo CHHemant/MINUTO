@@ -93,6 +93,10 @@ Deno.serve(async (request) => {
       || typeof payment.status !== "string") {
       throw new Error("YouPI returned payment details that do not match this order.");
     }
+    const amountPaise = BigInt(String(payment.amountPaise));
+    if (amountPaise > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error("YouPI returned an unsupported payment amount.");
+    }
 
     const eventByStatus: Record<string, string> = {
       SUCCESS: "SUCCESS",
@@ -106,7 +110,7 @@ Deno.serve(async (request) => {
         p_event: event,
         p_gateway_order_id: payment.orderId,
         p_payment_id: payment.paymentId,
-        p_amount_paise: Number(payment.amountPaise),
+        p_amount_paise: Number(amountPaise),
         p_currency: payment.currency,
         p_utr: typeof payment.utr === "string" ? payment.utr : null,
       });

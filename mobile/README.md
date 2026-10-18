@@ -39,6 +39,8 @@ Minuto opens YouPI's hosted checkout in the device browser. The app never decide
 
 The YouPI merchant account has one configured receiving UPI account. Buyer payments therefore go to Minuto's configured account, not directly to each seller. Seller UPI ID and phone are collected for Minuto to pay sellers separately; this app does not automatically transfer funds. The details are self-entered, not independently verified, and not visible to buyers. UPI checkout snapshots the seller's payout details for the order so later profile edits do not redirect an existing payout. Sellers must save both details before their listings are visible or can be ordered.
 
+The seller UPI ID is not a buyer checkout destination and is not converted into a payment QR code. Do not mark an order paid from a seller-provided UPI ID, QR scan, browser redirect, or client-side callback; only the signed webhook or authenticated server-side status lookup can do that.
+
 Minuto's existing charges remain: ₹5 markup per item, ₹6 buyer delivery contribution per order, and ₹6 seller delivery contribution per vendor delivery. The UPI seller payout ledger records seller-price total less the ₹6 seller delivery contribution for each vendor; if that leaves zero or less, no payout is due for that vendor on that order. The ledger is not an automatic transfer system. YouPI advertises zero gateway platform fees, but independently confirm its commercial terms and any bank, hosting, tax, or other charges; Minuto cannot promise that all transactions have zero charges.
 
 1. Deploy YouPI separately using its own deployment and commercial license terms. Configure its public HTTPS checkout/API URL, merchant ID, and webhook secret in its merchant settings.
@@ -68,6 +70,14 @@ Successful UPI webhooks create seller payout rows visible to the relevant seller
 The console writes an audit entry for account decisions, seller transfers, and completed payment refunds. It does not move money, verify identity or UPI ownership automatically, issue refunds, or settle COD/agent earnings. Never mark an external transfer or refund complete before it has actually cleared.
 
 ## Build and install an Android APK
+
+For Google Play preparation, read the repository [PLAY_STORE_CHECKLIST.md](../PLAY_STORE_CHECKLIST.md). The store artifact must be a signed production Android App Bundle, not a debug APK:
+
+```powershell
+npm run build:android:production
+```
+
+Configure the production Supabase URL and publishable key through EAS environment variables. Do not put payment secrets or service-role credentials in the app bundle.
 
 The project includes an Expo-generated `android` directory. With Android SDK tools and a supported JDK installed, build a local release APK from this directory:
 
