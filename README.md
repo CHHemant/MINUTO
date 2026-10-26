@@ -137,6 +137,12 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_your_key
 
 Only use a publishable/anon key in the mobile app. Never place a Supabase service-role key, YouPI webhook secret, or other server secret in `.env.local`, the app bundle, or source control.
 
+### Authentication email delivery
+
+Signup confirmation emails are delivered by Supabase Auth. For local development, either disable **Confirm email** under **Authentication → Providers → Email**, or configure a verified SMTP provider under **Authentication → SMTP Settings**. The default Supabase sender can be rate-limited or suppressed and is not suitable for production delivery.
+
+Add `http://localhost:8081` under **Authentication → URL Configuration → Redirect URLs**. Add the exact HTTPS URL for each deployed environment. If Minuto reports that a resend was sent but no email arrives, inspect Supabase Auth logs, spam/quarantine folders, sender-domain verification, and SMTP quota.
+
 If no environment variables are embedded, the application provides a first-run setup screen where a user can enter the Supabase URL and publishable key. The values are saved locally on that device.
 
 ## Configure the Supabase backend
@@ -148,8 +154,14 @@ Run the SQL files in this exact order in the Supabase SQL Editor:
 3. `mobile\supabase\migrations\20261018_youpi_upi_payments.sql`
 4. `mobile\supabase\migrations\20261018_youpi_upi_reliability.sql`
 5. `mobile\supabase\migrations\20261018_marketplace_admin_approval.sql`
+6. `mobile\supabase\migrations\20261022_daily_life_services.sql`
+7. `mobile\supabase\migrations\20261022_service_reviews.sql`
+8. `mobile\supabase\migrations\20261022_service_booking_controls.sql`
+9. `mobile\supabase\migrations\20261022_profile_recovery.sql`
+10. `mobile\supabase\migrations\20261022_admin_trust_controls.sql`
 
 The final migration gates vendors and delivery agents behind approval. Existing vendor and agent profiles are moved to pending review when the migration is applied.
+The daily-life migration adds service providers, buyer bookings, saved addresses, and reminders. Providers remain inactive until they are onboarded and verified.
 
 ### Finance administrator
 

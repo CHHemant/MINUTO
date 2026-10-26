@@ -12,6 +12,26 @@ Minuto is an Expo / React Native marketplace for independent vendors in Nagpur. 
 4. To enable YouPI UPI checkout, run `supabase/migrations/20261018_youpi_upi_payments.sql`. This adds payment state, order reservation handling, and the protected webhook RPCs.
 5. Run `supabase/migrations/20261018_youpi_upi_reliability.sql`. It tracks individual gateway attempts, supports safe retries and payment-status reconciliation, creates private seller payout records, and records payments requiring manual review.
 6. Run `supabase/migrations/20261018_marketplace_admin_approval.sql` last. It gates vendor and delivery-agent access behind approval, creates the private finance admin allowlist, and adds audited in-app review and manual settlement controls. Existing vendor and agent accounts will require review again.
+7. Run `supabase/migrations/20261022_daily_life_services.sql` to add verified service providers, buyer service bookings, saved addresses, and life reminders. Finance administrators can onboard providers in the app; provider rows remain inactive until the team verifies and publishes them.
+8. Run `supabase/migrations/20261022_service_reviews.sql` to enable one rating and review per completed service and provider rating updates.
+9. Run `supabase/migrations/20261022_service_booking_controls.sql` to allow buyers to cancel requested or confirmed service bookings.
+10. Run `supabase/migrations/20261022_profile_recovery.sql` to repair profiles for Auth users created before the signup trigger or accounts whose profile row is missing.
+11. Run `supabase/migrations/20261022_admin_trust_controls.sql` to enable one-time seller/agent invite codes, account suspension and permanent bans, and the protected admin account-management view.
+12. Run `supabase/migrations/20261022_delivery_tracking.sql` to add optional pickup/drop-off coordinates and secure latest delivery-agent location updates.
+13. Run `supabase/migrations/20261022_delivery_proof.sql` to require a buyer delivery code before completion and store optional delivery notes and proof photos.
+14. Run `supabase/migrations/20261022_delivery_notifications.sql` to create durable delivery notifications for buyers, sellers, and agents.
+
+### Delivery-agent UI preview
+
+To work on the delivery-agent interface without signing in during development, add `EXPO_PUBLIC_AGENT_PREVIEW=true` to `.env.local` and restart Expo. This shows local sample delivery jobs only; it does not connect to Supabase, bypass production authorization, or change the login flow. Remove the variable or set it to `false` before testing real agent accounts.
+
+### Authentication email delivery
+
+Signup confirmation emails are sent by Supabase Auth, not by the mobile app. For local development, either turn off **Confirm email** under **Authentication → Providers → Email** (so signup signs in immediately), or configure a real SMTP provider under **Authentication → SMTP Settings**. The default Supabase sender is intended for development and may be rate-limited or suppressed.
+
+Add `http://localhost:8081` under **Authentication → URL Configuration → Redirect URLs**. For a deployed build, add the exact HTTPS app URL as well. If the app reports that a resend was sent but no message arrives, check the Supabase Auth logs, spam/quarantine folders, sender-domain verification, and SMTP quota before changing app code.
+
+Minuto also supports password recovery from the sign-in screen. The reset link must use the same allowed redirect URL; after opening it, the app displays a secure new-password form.
 7. After the finance operator has a confirmed Supabase Auth account, add the operator explicitly from the Supabase SQL Editor:
 
    ```sql
@@ -85,9 +105,19 @@ The project includes an Expo-generated `android` directory. With Android SDK too
 .\android\gradlew.bat -p .\android --no-daemon assembleRelease
 ```
 
+If Java is not on PATH, Android Studio's bundled JDK can be used for the current PowerShell session:
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+.\android\gradlew.bat -p .\android --no-daemon assembleDebug
+```
+
 The APK is written to `android\app\build\outputs\apk\release\app-release.apk`. If no Supabase values were embedded at build time, the app opens the first-run backend setup screen; enter the project URL and publishable key after installing it. If `.env.local` exists, Expo embeds those public client values into the app bundle.
 
 On Windows, native CMake can exceed path-length limits when the project is in a deeply nested directory. If the release build fails while creating generated C++ paths, move the checkout to a shorter path or use the documented EAS build profile.
+
+If a short checkout still fails in `:app:buildCMakeDebug` with a `safeareacontext_autolinked_build` path error, use an EAS Android build or enable Windows long paths and rebuild after removing the generated `android\app\.cxx` directory. This is a React Native/CMake Windows build limitation, not an OpenFreeMap configuration error.
 
 Install the APK by transferring it to the Android phone, allowing installation from that file source when prompted, then opening Minuto. ADB can also install it with `adb install -r android\app\build\outputs\apk\release\app-release.apk` when a device with USB debugging is connected.
 
@@ -98,6 +128,8 @@ Install the APK by transferring it to the Android phone, allowing installation f
 - Buyers can place COD orders or start UPI checkout through a separately hosted YouPI PG instance. Pending payments can be resumed, retried after a terminal failure/expiry, or reconciled against YouPI's server-side status API. UPI orders remain pending until the signed webhook or authenticated server-side gateway status confirms the exact amount; a browser return is not proof of payment. Late/duplicate successful attempts are flagged for manual review.
 - Approved vendors mark orders ready; approved agents see the live offer while the app is open. Only the first agent to accept gets the job. Background push notifications and road-distance calculation / per-kilometer agent payouts are not configured.
 - An accepted agent can open the vendor pickup, then the buyer's Nagpur delivery address, in Maps.
+- Delivery jobs can store real route coordinates when a trusted geocoding or address-capture workflow supplies them. Until then, the map keeps the Nagpur fallback while Google Maps can navigate the text address.
+- Approved agents are asked for foreground location permission while signed in. During active app use, Minuto sends a throttled location update every 30 seconds or after roughly 50 metres; buyers and sellers can see the latest point only for accepted or picked-up jobs.
 - Seller UPI ID and phone are required before review; account approval is manual and is not automated identity or UPI ownership verification. Buyer UPI funds go to Minuto's gateway account. The finance console tracks manual transfers and refunds but does not execute them. COD collection and agent payouts are not connected, and no in-app buyer support channel is connected. Do not use this as a live-commerce service until real seller verification, support, refunds, COD collection, agent settlement, applicable legal/privacy review, and staging payment tests are complete.
 
 The database schema has not been applied to any project from this repository. The APK can be built without a configured backend, but shared accounts, product uploads, checkout, and delivery jobs work only after a Supabase project is configured and the base schema and all four migrations have been run successfully. UPI also needs deployed Edge Functions and a configured YouPI webhook.
